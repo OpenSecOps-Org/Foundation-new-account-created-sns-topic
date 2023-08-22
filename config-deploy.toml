@@ -1,0 +1,12 @@
+# Deployment configuration
+
+repo-name    = "Foundation-new-account-created-sns-topic"
+part-of      = 'foundation'
+
+
+[[CloudFormation]]
+name         = "INFRA-new-account-created-sns-topic"
+template     = 'new-account-created-sns-topic.yaml'
+account      = '{admin-account}'
+regions      = '{main-region}'
+

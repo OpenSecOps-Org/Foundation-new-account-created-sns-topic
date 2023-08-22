@@ -1,0 +1,121 @@
+---
+#===============================================================================================================================
+# Creates an SNS Topic which receives account creation events
+#===============================================================================================================================
+
+AWSTemplateFormatVersion: 2010-09-09
+Description:
+  This stack creates an SNS Topic which receives events signalling the successful creation of an account
+  via AWS Organizations. The topic is intended to be used for post-creation account configuration. 
+  The Topic can be accessed by any principal.
+
+
+Parameters:
+  CrossAccountRole:
+    Type: String
+    Description:
+      The role to assume in other organisation accounts. Only used here to select the event pattern.
+    AllowedValues: ['AWSControlTowerExecution', 'OrganizationAccountAccessRole']
+    Default: 'AWSControlTowerExecution'
+
+
+Conditions:
+  AWSOrganizations: !Equals
+    - !Ref CrossAccountRole
+    - 'AWSControlTowerExecution'
+  AWSControlTower: !Equals
+    - !Ref CrossAccountRole
+    - 'AWSControlTowerExecution'
+
+
+Resources:
+  #===============================================================================================================================
+  # SNS Topic
+  #===============================================================================================================================
+
+  AccountCreatedTopic:
+    Type: 'AWS::SNS::Topic'
+    Properties:
+      TopicName: new-account-created
+
+  AccountCreatedTopicPolicy:
+    Type: 'AWS::SNS::TopicPolicy'
+    Properties:
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: AWSEventsSNSPolicy
+            Effect: Allow
+            Principal:
+              Service: 'events.amazonaws.com'
+            Resource: !Ref AccountCreatedTopic
+            Action: 'sns:Publish'
+          - Sid: AllowUse
+            Effect: Allow
+            Principal: '*'
+            Resource: !Ref AccountCreatedTopic
+            Action:
+              - sns:Subscribe
+              - sns:Receive
+              - sns:ListSubscriptionsByTopic
+      Topics:
+        - !Ref AccountCreatedTopic
+
+  #===============================================================================================================================
+  # SNS Topic
+  #===============================================================================================================================
+
+  AWSOrganizationsRule:
+    Type: AWS::Events::Rule
+    Condition: AWSOrganizations
+    Properties:
+      Description: Triggered when AWS Organizations successfully creates a new account
+      EventPattern:
+        {
+          'source': ['aws.organizations'],
+          'detail':
+            {
+              'eventSource': ['organizations.amazonaws.com'],
+              'eventName': ['CreateAccountResult'],
+              'serviceEventDetails':
+                { 'createAccountStatus': { 'state': ['SUCCEEDED'] } },
+            },
+        }
+      State: ENABLED
+      Targets:
+        - Arn: !Ref AccountCreatedTopic
+          Id: AccountCreatedTopicTarget
+
+  AWSControlTowerRule:
+    Type: AWS::Events::Rule
+    Condition: AWSControlTower
+    Properties:
+      Description: Triggered when AWS Control Tower successfully finishes creating a new account
+      EventPattern:
+        {
+          'source': ['aws.controltower'],
+          'detail-type': ['AWS Service Event via CloudTrail'],
+          'detail':
+            {
+              'eventSource': ['controltower.amazonaws.com'],
+              'eventName': ['CreateManagedAccount'],
+              'serviceEventDetails':
+                { 'createManagedAccountStatus': { 'state': ['SUCCEEDED'] } },
+            },
+        }
+      State: ENABLED
+      Targets:
+        - Arn: !Ref AccountCreatedTopic
+          Id: AccountCreatedTopicTarget
+          InputPath: '$.detail.serviceEventDetails.createManagedAccountStatus.account.accountId'
+
+#===============================================================================================================================
+# Outputs
+#===============================================================================================================================
+
+Outputs:
+  AccountCreatedTopicArn:
+    Description: The SNS Topic created
+    Value: !Ref AccountCreatedTopic
+    Export:
+      Name: AccountCreatedTopicArn
