@@ -1,4 +1,4 @@
-# SOAR-detect-log-buckets
+# Foundation-new-account-created-sns-topic
 
 This stack creates an SNS Topic which receives events signalling the successful creation of an account
 via AWS Organizations or AWS Control Tower. The topic is intended to be used for post-creation account 
