@@ -6,7 +6,7 @@ part-of      = 'foundation'
 
 [[CloudFormation]]
 name         = "INFRA-new-account-created-sns-topic"
-template     = 'new-account-created-sns-topic.yaml'
+template     = 'new-account-created-sns-topic.yml'
 account      = '{admin-account}'
 regions      = '{main-region}'
 

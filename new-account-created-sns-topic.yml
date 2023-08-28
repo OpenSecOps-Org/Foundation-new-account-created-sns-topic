@@ -22,7 +22,7 @@ Parameters:
 Conditions:
   AWSOrganizations: !Equals
     - !Ref CrossAccountRole
-    - 'AWSControlTowerExecution'
+    - 'OrganizationAccountAccessRole'
   AWSControlTower: !Equals
     - !Ref CrossAccountRole
     - 'AWSControlTowerExecution'

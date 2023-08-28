@@ -11,6 +11,7 @@ import botocore
 from botocore.exceptions import ClientError
 from botocore.exceptions import WaiterError
 import time
+import shutil
 
 
 # Create an STS client
@@ -47,7 +48,7 @@ def load_toml(toml_file):
 
 
 def get_account_data_from_toml(account_key, id_or_profile):
-    toml_file = '../Delegat-Install/config-accounts.toml'
+    toml_file = '../Delegat-Install/accounts.toml'
     # Load the TOML file
     config = load_toml(toml_file)
 
@@ -62,7 +63,7 @@ def get_account_data_from_toml(account_key, id_or_profile):
 
 
 def get_all_parameters(delegat_app):
-    toml_file = f'../Delegat-Install/config-{delegat_app}.toml'
+    toml_file = f'../Delegat-Install/apps/{delegat_app}/parameters.toml'
     # Load and return the whole TOML file
     config = load_toml(toml_file)
     return config
@@ -90,6 +91,10 @@ def parameters_to_cloudformation_json(params, repo_name, template_name):
 
 
 def dereference(value, params):
+    # If not a string, just return
+    if not isinstance(value, str):
+        return value
+
     # Check if value is exactly '{all-regions}'
     if value == '{all-regions}':
         # Get main region and other regions
@@ -132,17 +137,19 @@ def process_sam(sam, repo_name, params):
     printc(LIGHT_BLUE, f"")
     printc(LIGHT_BLUE, "================================================")
     printc(LIGHT_BLUE, f"")
-    printc(LIGHT_BLUE, f"  SAM")
+    printc(LIGHT_BLUE, f"  {repo_name} (SAM)")
     printc(LIGHT_BLUE, f"")
     printc(LIGHT_BLUE, "------------------------------------------------")
     printc(LIGHT_BLUE, f"")
 
     sam_account = sam['profile']
     sam_regions = dereference(sam['regions'], params)
+    if isinstance(sam_regions, str):
+        sam_regions = [sam_regions]
 
     stack_name = sam['stack-name']
     capabilities = sam.get('capabilities', 'CAPABILITY_IAM')
-    s3_prefix = sam['s3-prefix']
+    s3_prefix = sam.get('s3-prefix', stack_name)
     tags = 'infra:immutable="true"'
 
     # Get the AWS SSO profile
@@ -156,14 +163,23 @@ def process_sam(sam, repo_name, params):
         subprocess.run(['git', 'pull'], check=True)
 
         printc(LIGHT_BLUE, "Executing 'sam build'...")
-        subprocess.run(['sam', 'build'], check=True)
+        try:
+            subprocess.run(['sam', 'build', '--parallel', '--cached'], check=True)
+        except subprocess.CalledProcessError:
+            printc(RED, "An error occurred. Retrying after cleaning build directory...")
+
+            # Remove the .aws-sam directory
+            shutil.rmtree('.aws-sam', ignore_errors=True)
+
+            # Retry the build command
+            subprocess.run(['sam', 'build', '--parallel', '--cached'], check=True)
 
         for region in sam_regions:
             printc(LIGHT_BLUE, f"")
             printc(LIGHT_BLUE, f"")
             printc(LIGHT_BLUE, "================================================")
             printc(LIGHT_BLUE, f"")
-            printc(LIGHT_BLUE, f"  Deploying to {region}...")
+            printc(LIGHT_BLUE, f"  Deploying {stack_name} to {region}...")
             printc(LIGHT_BLUE, f"")
             printc(LIGHT_BLUE, "------------------------------------------------")
             printc(LIGHT_BLUE, f"")
@@ -646,12 +662,12 @@ def monitor_stackset_stacks_until_complete(stackset_name, account_id, region, ro
             
             # Print the status of each stack instance
             for instance in stack_instances['Summaries']:
-                stack_instance_identifier = f"{instance['Account']}: {instance['Region']:<15}"
+                stack_instance_identifier = f"{instance['Account']} {instance['Region']:<15}"
                 stack_status = instance['Status']
                 if stack_status in terminal_states:
-                    printc(GREEN, f"Stack: {stack_instance_identifier}, Status: {stack_status}")
+                    printc(GREEN, f"{stack_instance_identifier} {stack_status}")
                 else:
-                    printc(YELLOW, f"Stack: {stack_instance_identifier}, Status: {stack_status}")
+                    printc(YELLOW, f"{stack_instance_identifier} {stack_status}")
             
             # Move the cursor to the beginning of the line
             sys.stdout.write("\033[F" * (len(stack_instances['Summaries'])))
@@ -749,7 +765,7 @@ def process_cloudformation(jobs, repo_name, params, cross_account_role):
                 changing = update_stack_set(stack_name, template_str, stack_parameters, capabilities, regions, account, main_region, cross_account_role)
                 if changing:
                     time.sleep(1)
-                    monitor_stack_until_complete(stack_name, account, main_region, cross_account_role)
+                    monitor_stackset_until_complete(stack_name, account, main_region, cross_account_role)
             else:
                 # printc(YELLOW, f"- StackSet does not exist in {account} and {main_region}")
                 create_stack_set(stack_name, template_str, stack_parameters, capabilities, root_ou, regions, account, main_region, cross_account_role)
