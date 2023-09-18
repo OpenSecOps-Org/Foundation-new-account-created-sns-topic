@@ -1,5 +1,8 @@
 # Change Log
 
+## v1.0.2
+    * `--dry-run` and `--verbose` added to `deploy`.
+
 ## v1.0.1
   * Role bug fixed.
 

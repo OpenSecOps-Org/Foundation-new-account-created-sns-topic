@@ -7,11 +7,12 @@ configuration. It can be accessed by any principal.
 
 ## Deployment
 
-First log in to your AWS organisation using SSO and a profile that gives you
-AWSAdministratorAccess to the AWS Organizations admin account.
+First make sure that your SSO setup is configured with a default profile giving you AWSAdministratorAccess
+to your AWS Organizations administrative account. This is necessary as the AWS cross-account role used 
+during deployment only can be assumed from that account.
 
 ```console
-aws sso login --profile <profile-name>
+aws sso login
 ```
 
 Then type:
