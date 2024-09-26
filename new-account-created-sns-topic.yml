@@ -7,7 +7,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Description:
   This stack creates an SNS Topic which receives events signalling the successful creation of an account
   via AWS Organizations. The topic is intended to be used for post-creation account configuration. 
-  The Topic can be accessed by any principal in the AWS Organization.
+  The Topic can be accessed only from the AWS Organizations account and from AWS ChatBot.
 
 
 Parameters:

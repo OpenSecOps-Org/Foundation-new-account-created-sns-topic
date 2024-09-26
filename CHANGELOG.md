@@ -1,5 +1,8 @@
 # Change Log
 
+## v1.1.1
+    * Updated comment regarding scope.
+
 ## v1.1.0
     * Restricted the SNS topic for the use of the Org account only, as well as for AWS ChatBot.
       Before deploying, add the line `OrgAccountId     = '{admin-account}'` to the 
