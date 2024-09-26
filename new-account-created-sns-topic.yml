@@ -7,7 +7,7 @@ AWSTemplateFormatVersion: 2010-09-09
 Description:
   This stack creates an SNS Topic which receives events signalling the successful creation of an account
   via AWS Organizations. The topic is intended to be used for post-creation account configuration. 
-  The Topic can be accessed by any principal.
+  The Topic can be accessed by any principal in the AWS Organization.
 
 
 Parameters:
@@ -17,6 +17,11 @@ Parameters:
       The role to assume in other organisation accounts. Only used here to select the event pattern.
     AllowedValues: ['AWSControlTowerExecution', 'OrganizationAccountAccessRole']
     Default: 'AWSControlTowerExecution'
+
+  OrgAccountId:
+    Type: String
+    Description: The account number of the Organization account
+    Default: '111111111111'
 
 
 Conditions:
@@ -44,20 +49,34 @@ Resources:
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
-          - Sid: AWSEventsSNSPolicy
+          - 
+            Sid: AWSEventsSNSPolicy
             Effect: Allow
             Principal:
               Service: 'events.amazonaws.com'
             Resource: !Ref AccountCreatedTopic
             Action: 'sns:Publish'
-          - Sid: AllowUse
+          - 
+            Sid: AllowUse
             Effect: Allow
             Principal: '*'
+            Condition:
+                  StringEquals:
+                        "aws:PrincipalAccount": !Ref OrgAccountId
             Resource: !Ref AccountCreatedTopic
             Action:
               - sns:Subscribe
               - sns:Receive
               - sns:ListSubscriptionsByTopic
+          - 
+            Sid: AllowAWSChatbot
+            Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:aws:iam::${OrgAccountId}:role/aws-service-role/management.chatbot.amazonaws.com/AWSServiceRoleForAWSChatbot'
+            Resource: !Ref AccountCreatedTopic
+            Action:
+              - sns:Subscribe
+              - sns:Receive
       Topics:
         - !Ref AccountCreatedTopic
 
