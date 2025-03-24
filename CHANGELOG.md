@@ -1,5 +1,8 @@
 # Change Log
 
+## v1.1.3
+    * Removed superfluous condition.
+
 ## v1.1.2
     * AWS Chatbot policy clause now uses wildcard matching instead of assuming the service role always exists.
 

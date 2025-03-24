@@ -73,8 +73,6 @@ Resources:
             Effect: Allow
             Principal: '*'
             Condition:
-              StringEquals:
-                "aws:PrincipalAccount": !Ref OrgAccountId
               StringLike:
                 "aws:PrincipalArn": "arn:aws:iam::*:role/aws-service-role/management.chatbot.amazonaws.com/AWSServiceRoleForAWSChatbot"
             Resource: !Ref AccountCreatedTopic
