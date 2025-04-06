@@ -1,5 +1,8 @@
 # Change Log
 
+## v1.2.4
+    * File paths corrected for the new name of the installer.
+
 ## v1.2.3
     * Updated LICENSE file to MPL 2.0.
 
@@ -24,8 +27,8 @@
 ## v1.1.0
     * Restricted the SNS topic for the use of the Org account only, as well as for AWS ChatBot.
       Before deploying, add the line `OrgAccountId     = '{admin-account}'` to the 
-      Foundation-limit-log-group-retention section of `Delegat-Install/apps/foundation/parameters.toml`. 
-      See `Delegat-Install/apps.example/parameters.toml` for an example.
+      Foundation-limit-log-group-retention section of `CloudSecOps-Installer/apps/foundation/parameters.toml`. 
+      See `CloudSecOps-Installer/apps.example/parameters.toml` for an example.
 
 ## v1.0.5
     * Upgraded to Python 3.12.
